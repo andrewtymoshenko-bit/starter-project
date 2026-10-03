@@ -1,0 +1,9 @@
+﻿HTTP/1.1 400 Bad Request
+Content-Type: application/problem+json
+Date: Sat, 03 Oct 2026 16:21:13 GMT
+Server: Kestrel
+Transfer-Encoding: chunked
+X-Content-Type-Options: nosniff
+Referrer-Policy: no-referrer
+
+{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"sortBy":["╨Ф╨╛╨┐╤Г╤Б╤В╨╕╨╝╤Ц ╨╖╨╜╨░╤З╨╡╨╜╨╜╤П: createdAtUtc, severity, status."]},"traceId":"00-51952fa97a5765de7fa95643be758a76-6ea1f05a81848ea0-00"}

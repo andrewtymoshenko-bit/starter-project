@@ -1,0 +1,9 @@
+﻿HTTP/1.1 404 Not Found
+Content-Type: application/problem+json
+Date: Sat, 03 Oct 2026 16:21:49 GMT
+Server: Kestrel
+Transfer-Encoding: chunked
+X-Content-Type-Options: nosniff
+Referrer-Policy: no-referrer
+
+{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.5","title":"╨Ж╨╜╤Ж╨╕╨┤╨╡╨╜╤В ╨╜╨╡ ╨╖╨╜╨░╨╣╨┤╨╡╨╜╨╛","status":404,"detail":"╨Ж╨╜╤Ж╨╕╨┤╨╡╨╜╤В 'ffffffff-ffff-ffff-ffff-ffffffffffff' ╨╜╨╡ ╤Ц╤Б╨╜╤Г╤Ф.","traceId":"00-a6106946933832e73a7aa9607c3e79f4-3e8b21da748eadc8-00"}
