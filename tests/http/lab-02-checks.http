@@ -107,3 +107,24 @@ GET {{api}}/api/incidents/search?q=zz-no-match%27%20OR%20TRUE%20--%20
 
 ### D: звичайний текст з апострофом
 GET {{api}}/api/incidents/search?q=O%27Brien
+
+### Невідоме сортування — 400, errors.sortBy
+GET {{api}}/api/incidents/search?sortBy=price
+
+### Severity: High, Medium, Low на поточних seed-даних
+GET {{api}}/api/incidents/search?sortBy=severity
+
+### Status: New, Triaged, InProgress, Resolved, Closed
+GET {{api}}/api/incidents/search?sortBy=status
+
+### Новіші записи першими
+GET {{api}}/api/incidents/search?sortBy=createdAtUtc
+
+### Буквальний відсоток — 200, [] на початкових даних
+GET {{api}}/api/incidents/search?q=%25
+
+### Буквальне підкреслення — 200, [] на початкових даних
+GET {{api}}/api/incidents/search?q=_
+
+### Буквальна зворотна скісна риска — 200, []
+GET {{api}}/api/incidents/search?q=%5C
