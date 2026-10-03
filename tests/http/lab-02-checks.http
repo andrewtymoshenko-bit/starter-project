@@ -1,0 +1,109 @@
+@api = http://localhost:5080
+
+### Перевірка встановлення scaffold: 200, один запис
+GET {{api}}/api/incidents/search?q=USB
+
+### Перевірка збереження розширення ЛР 1: 200
+GET {{api}}/api/incidents/severity-summary
+
+### T-01: коректне створення — очікуємо 201
+POST {{api}}/api/incidents
+Content-Type: application/json
+
+{
+  "title": "LR02 valid incident 01",
+  "description": "Навчальна перевірка створення інциденту.",
+  "severity": "Low",
+  "occurredAtUtc": "2026-10-03T10:00:00+03:00"
+}
+
+### T-03: повтор тієї самої назви — очікуємо 409
+POST {{api}}/api/incidents
+Content-Type: application/json
+
+{
+  "title": "  LR02 valid incident 01  ",
+  "description": "Повторне створення з пробілами на краях назви.",
+  "severity": "Low",
+  "occurredAtUtc": "2026-10-03T07:00:00Z"
+}
+
+### T-02: порожня назва — очікуємо 400, errors.title
+POST {{api}}/api/incidents
+Content-Type: application/json
+
+{
+  "title": "   ",
+  "description": "Навчальний опис інциденту.",
+  "severity": "Low",
+  "occurredAtUtc": "2026-10-03T07:00:00Z"
+}
+
+### T-02: severity 7 — очікуємо 400, errors.severity
+POST {{api}}/api/incidents
+Content-Type: application/json
+
+{
+  "title": "LR02 invalid severity",
+  "description": "Навчальний опис інциденту.",
+  "severity": "7",
+  "occurredAtUtc": "2026-10-03T07:00:00Z"
+}
+
+### T-02: дата відсутня — очікуємо 400, errors.occurredAtUtc
+POST {{api}}/api/incidents
+Content-Type: application/json
+
+{
+  "title": "LR02 missing date",
+  "description": "Навчальний опис інциденту.",
+  "severity": "Low"
+}
+
+### T-02: дата далеко в майбутньому — очікуємо 400
+POST {{api}}/api/incidents
+Content-Type: application/json
+
+{
+  "title": "LR02 future date",
+  "description": "Навчальний опис інциденту.",
+  "severity": "Low",
+  "occurredAtUtc": "2099-01-01T00:00:00Z"
+}
+
+### T-09: High, 39 символів після Trim — очікуємо 400
+POST {{api}}/api/incidents
+Content-Type: application/json
+
+{
+  "title": "LR02 high 39",
+  "description": "  123456789012345678901234567890123456789  ",
+  "severity": "High",
+  "occurredAtUtc": "2026-10-03T07:00:00Z"
+}
+
+### T-09: High, 40 символів після Trim — очікуємо 201
+POST {{api}}/api/incidents
+Content-Type: application/json
+
+{
+  "title": "LR02 high 40",
+  "description": "  1234567890123456789012345678901234567890  ",
+  "severity": "High",
+  "occurredAtUtc": "2026-10-03T07:00:00Z"
+}
+
+### T-06: відсутній інцидент — очікуємо 404
+GET {{api}}/api/incidents/ffffffff-ffff-ffff-ffff-ffffffffffff
+
+### A: звичайний пошук
+GET {{api}}/api/incidents/search?q=USB
+
+### B: текст, якого немає
+GET {{api}}/api/incidents/search?q=zz-no-match
+
+### C: контрольний SQLi-ввід із методички
+GET {{api}}/api/incidents/search?q=zz-no-match%27%20OR%20TRUE%20--%20
+
+### D: звичайний текст з апострофом
+GET {{api}}/api/incidents/search?q=O%27Brien
