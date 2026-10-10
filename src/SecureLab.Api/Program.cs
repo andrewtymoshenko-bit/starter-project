@@ -50,6 +50,9 @@ if (app.Environment.IsDevelopment())
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+
+
+
 app.MapGet("/health", async (SecureLabDbContext dbContext, CancellationToken cancellationToken) =>
     await dbContext.Database.CanConnectAsync(cancellationToken)
         ? Results.Ok(new { status = "ready" })
@@ -62,6 +65,11 @@ app.MapGet("/health", async (SecureLabDbContext dbContext, CancellationToken can
 
 app.MapIncidentEndpoints();
 app.MapLab02Endpoints();
+
+app.MapFallback("/api/{**path}", () => Results.Problem(
+    title: "Маршрут не знайдено",
+    detail: "Такого маршрутту не існує",
+    statusCode: StatusCodes.Status400BadRequest));
 app.MapFallbackToFile("index.html");
 
 app.Run();
