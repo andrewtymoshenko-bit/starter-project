@@ -4,6 +4,7 @@ using Scalar.AspNetCore;
 using SecureLab.Api.Application.Incidents;
 using SecureLab.Api.Data;
 using SecureLab.Api.Presentation.Endpoints;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
@@ -22,6 +23,63 @@ builder.Services.AddDbContext<SecureLabDbContext>(options =>
 builder.Services.AddScoped<IncidentQueries>();
 
 builder.AddLab03Identity();
+
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode =
+        StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("auth-login", context =>
+    {
+        var configuration = context.RequestServices
+            .GetRequiredService<IConfiguration>();
+
+        var permitLimit =
+            configuration.GetValue<int?>("LoginRateLimit:PermitLimit")
+            ?? 10;
+
+        var windowSeconds =
+            configuration.GetValue<int?>("LoginRateLimit:WindowSeconds")
+            ?? 60;
+
+        if (permitLimit <= 0 || windowSeconds <= 0)
+        {
+            throw new InvalidOperationException(
+                "Параметри обмеження входу мають бути додатними.");
+        }
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey:
+                context.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = permitLimit,
+                Window = TimeSpan.FromSeconds(windowSeconds),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
+
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        var logger = context.HttpContext.RequestServices
+            .GetRequiredService<ILogger<Program>>();
+
+        logger.LogInformation(
+            "AuthEvent={AuthEvent} Outcome={Outcome} TraceId={TraceId}",
+            "login",
+            "rate_limited",
+            context.HttpContext.TraceIdentifier);
+
+        await Results.Problem(
+            title: "Забагато спроб входу",
+            detail: "Спробуйте повторити вхід пізніше.",
+            statusCode: StatusCodes.Status429TooManyRequests)
+            .ExecuteAsync(context.HttpContext);
+    };
+});
 
 var app = builder.Build();
 
@@ -51,6 +109,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseRateLimiter();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();

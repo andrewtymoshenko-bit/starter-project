@@ -8,9 +8,25 @@ using SecureLab.Api.Data;
 namespace SecureLab.Api.Tests;
 
 public sealed class IncidentSearchTests(SecureLabApiFactory factory)
-    : IClassFixture<SecureLabApiFactory>
+    : IClassFixture<SecureLabApiFactory>, IAsyncLifetime
 {
-    private readonly HttpClient _client = factory.CreateClient();
+    private HttpClient _client = null!;
+
+    public async Task InitializeAsync()
+    {
+        var password =
+            Environment.GetEnvironmentVariable("SeedUsers__Password")
+            ?? throw new InvalidOperationException(
+                "Задайте SeedUsers__Password перед запуском тестів.");
+
+        _client = await factory.LoginAsync("alice", password);
+    }
+
+    public Task DisposeAsync()
+    {
+        _client?.Dispose();
+        return Task.CompletedTask;
+    }
 
     [Theory]
     [InlineData("%", "X")]

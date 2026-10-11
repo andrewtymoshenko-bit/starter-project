@@ -1,7 +1,92 @@
 <!doctype html>
 <html lang="uk"><meta charset="utf-8"><title>ЛР 03 — сеанс</title>
 <h1>Навчальний сеанс</h1>
+<p id="session-state" role="status">Стан сеансу невідомий.</p>
+<pre id="profile"></pre>
+<h2>Реєстрація</h2>
+
+<form id="register">
+  <p>
+    <label>
+      Ім’я користувача
+      <input name="userName"
+             maxlength="256"
+             autocomplete="username"
+             required>
+    </label>
+  </p>
+
+  <p>
+    <label>
+      Email
+      <input name="email"
+             type="email"
+             maxlength="256"
+             autocomplete="email"
+             required>
+    </label>
+  </p>
+
+  <p>
+    <label>
+      Ім’я профілю
+      <input name="displayName"
+             maxlength="120"
+             autocomplete="name"
+             required>
+    </label>
+  </p>
+
+  <p>
+    <label>
+      Пароль
+      <input name="password"
+             type="password"
+             autocomplete="new-password"
+             required>
+    </label>
+  </p>
+
+  <button type="submit">Зареєструватися</button>
+</form>
+
+<pre id="register-result"></pre>
+
+<h2>Вхід</h2>
 <form id="login"><label>Ім’я <input name="userName" autocomplete="username" required></label>
 <label>Пароль <input name="password" type="password" autocomplete="current-password" required></label><button>Увійти</button></form>
 <button id="me">Мій профіль</button><button id="logout">Вийти</button><pre id="result"></pre>
+<h2>Створення інциденту</h2>
+
+<form id="create-incident">
+  <p>
+    <label>
+      Назва
+      <input name="title" maxlength="160" required>
+    </label>
+  </p>
+
+  <p>
+    <label>
+      Опис
+      <textarea name="description" maxlength="4000" required></textarea>
+    </label>
+  </p>
+
+  <p>
+    <label>
+      Серйозність
+      <select name="severity">
+        <option value="Low">Low</option>
+        <option value="Medium" selected>Medium</option>
+        <option value="High">High</option>
+        <option value="Critical">Critical</option>
+      </select>
+    </label>
+  </p>
+
+  <button type="submit">Створити інцидент</button>
+</form>
+
+<pre id="create-result"></pre>
 <script src="auth-lab.js" defer></script></html>

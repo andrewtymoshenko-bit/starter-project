@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SecureLab.Api.Data;
 using SecureLab.Api.Data.Entities;
+using System.Security.Claims;
 
 namespace SecureLab.Api.Scaffolding;
 
@@ -81,9 +82,18 @@ public static class Lab02Endpoints
         
         app.MapPost("/api/incidents", async (
             CreateIncidentRequest request,
+            HttpContext httpContext,
             SecureLabDbContext db,
             CancellationToken ct) =>
         {
+            var userIdClaim = httpContext.User.FindFirstValue(
+                ClaimTypes.NameIdentifier);
+
+            if (!Guid.TryParse(userIdClaim, out var ownerId))
+            {
+                return Results.Unauthorized();
+            }
+
             var now = DateTimeOffset.UtcNow;
             var errors = new Dictionary<string, string[]>();
 
@@ -172,7 +182,7 @@ public static class Lab02Endpoints
             var incident = new Incident
             {
                 Id = Guid.NewGuid(),
-                OwnerUserId = DbSeeder.AliceId,
+                OwnerUserId = ownerId,
                 Title = title,
                 Description = description,
                 Severity = severity,
@@ -195,7 +205,7 @@ public static class Lab02Endpoints
                 incident.UpdatedAtUtc);
 
             return Results.Created($"/api/incidents/{incident.Id}", response);
-        });
+            }).RequireAuthorization();
     }
 }
 
