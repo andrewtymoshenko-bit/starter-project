@@ -10,7 +10,6 @@
 - Гілка: `lab/4-authorization`; базовий тег: `v0.3.0`.
 - Початковий commit ЛР 03: `69154171bcb12f018f06a3768441a230f18b703d`.
 - Vulnerable commit hash: `fbb3d3f61f2972722d6b934125b9e9fa437d7cc9`.
-- Fixed commit hash: `FIXED_COMMIT_HASH`.
 - Фінальний тег для виправленого коду: `v0.4.0`.
 - Репозиторій: https://github.com/andrewtymoshenko-bit/starter-project.
 - Середовище: Windows, PowerShell, .NET 10, PostgreSQL у Docker; API — `http://localhost:5080`.
