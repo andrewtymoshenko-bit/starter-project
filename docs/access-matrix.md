@@ -1,76 +1,55 @@
-# Матриця доступу — ЛР 04
+# Матриця доступу — лабораторна робота № 4
 
-## Контекст
+## 1. Контекст
 
-- Предметний сценарій: baseline 2-A.
-- Рівень виконання: «Добре».
-- Головний ресурс: Incident.
-- Дочірній ресурс: IncidentComment.
-- Головна перевірювана дія: перегляд деталей інциденту.
-- Додатковий IDOR-сценарій: редагування чужого інциденту.
-- Привілейована дія: POST /api/incidents/{id}/triage.
-- Ідентифікатор користувача та ролі беруться лише з перевіреного principal.
+- Предметний сценарій: baseline 2-A, SecureLab; рівень «Добре».
+- Головний ресурс: `Incident`; дочірній: `IncidentComment`.
+- Головна перевірювана дія: details/read; додатковий IDOR — content update.
+- Privileged action: `POST /api/incidents/{id}/triage`.
+- User id і ролі походять із verified principal. Owner і current status читаються з БД.
 
-## Політика відмов
+## 2. Політика відповідей
 
-1. Неавтентифікований запит до захищеного маршруту отримує 401 без redirect.
-2. Чужий недоступний ресурс приховується відповіддю 404.
-3. Невідомий і недоступний identifier повертають однакові status,
-   Content-Type і тіло; відрізнятися може лише traceId.
-4. Якщо користувач має право бачити ресурс, але не має права виконати
-   дію над ним, сервер повертає 403.
-5. Analyst може виконати triage лише зі стану New. Для іншого
-   поточного стану повертається 409 без зміни даних.
-6. Перевірка доступу передує поверненню даних і будь-якій зміні БД.
+1. Анонімний protected request: `401` без redirect.
+2. Невідомий або невидимий ресурс: спільний `IncidentNotFound()`, `404` Problem Details без detail з identifier.
+3. Чужий і невідомий ресурс мають однакові status, Content-Type та JSON, крім traceId.
+4. Видимий ресурс, але заборонена operation: `403`; наприклад, Reporter triage власного інциденту.
+5. Analyst triage не зі статусу New: `409` без зміни БД.
+6. Зміна entity, додавання history та SaveChanges виконуються лише після дозволу.
 
-## Правила доступу
+Політика 404 зменшує розкриття існування чужого ресурсу; перевірка однакових відповідей не доводить однаковий час виконання.
 
-У таблиці наведено цільовий контракт. Реалізація й перевірки
-виконуються наступними етапами лабораторної роботи.
-Для невідомого identifier завжди повертається 404.
+## 3. Реалізована матриця
 
-| Дія | Рівень | Анонім | Reporter | Analyst | Administrator | Власник має значення? | Стан реалізації |
+Для конкретного identifier невідомий ресурс завжди повертає 404. Успішне читання: 200; create: 201; update і triage: 204.
+
+| Дія | Рівень | Анонім | Reporter | Analyst | Administrator | Власник має значення? | Реалізація і перевірка |
 |---|---|---|---|---|---|---|---|
-| Перегляд списку | Добрий | deny, 401 | allow, лише власні | allow, усі для аналізу | allow, лише власні | Так, крім Analyst | Заплановано; A-05 |
-| Перегляд деталей | Достатній | deny, 401 | власний — allow; чужий — deny, 404 | allow для аналізу | власний — allow; чужий — deny, 404 | Так, крім Analyst | Заплановано; A-01, A-02, A-03, A-03R |
-| Створення інциденту | Успадкований baseline | deny, 401 | allow для себе | allow для себе | allow для себе | Власника призначає сервер | Реалізовано в ЛР 03 |
-| Редагування title/description | Добрий | deny, 401 | власний — allow; чужий — deny, 404 | deny, 403 | власний — deny, 403; чужий — deny, 404 | Так | Заплановано; A-04, A-08a |
-| Видалення | Добрий | deny, 401 | власний — deny, 403; чужий — deny, 404 | deny, 403 | власний — deny, 403; чужий — deny, 404 | Так для видимості ресурсу | Заплановано; A-04 |
-| Triage: New → Triaged | Добрий | deny, 401 | власний — deny, 403; чужий — deny, 404 | allow лише для New; інший стан — 409 | власний — deny, 403; чужий — deny, 404 | Для дозволу Analyst — ні | Заплановано; A-06, A-07, A-09 |
-| Пряме читання звичайного коментаря | Добрий | deny, 401 | allow лише для власного parent incident; інакше 404 | allow після перевірки parent incident | allow лише для власного parent incident; інакше 404 | Так, крім Analyst | Заплановано; A-12 |
-| Читання internal comment | Добрий | deny, 401 | deny, 404 | allow після перевірки parent incident | deny, 404 | Одного ownership недостатньо | Заплановано; A-12 |
+| List | Добрий | deny, 401 | allow, лише власні | allow, усі для аналізу | allow, лише власні | Так, крім Analyst | `IncidentQueries.GetListAsync`, owner WHERE до проєкції; `GetList_AsAlice_ReturnsOnlyOwnedIncidents` (A-05) |
+| Details | Достатній | deny, 401 | власний — allow; чужий — deny, 404 | allow для аналізу | власний — allow; чужий — deny, 404 | Так, крім Analyst | Handler `Read`; `IncidentEndpointTests`: A-01, A-02, A-03, A-03R, A-10 |
+| Create | Успадкований baseline | deny, 401 | allow для себе | allow для себе | allow для себе | Owner призначає сервер | Захищений POST з ЛР 03, owner із principal; `IncidentOwnershipTests` |
+| Update title/description | Добрий | deny, 401 | власний — allow; чужий — deny, 404 | deny, 403 | власний — deny, 403; чужий — deny, 404 | Так | Спочатку `Read`, потім `UpdateContent`; `IncidentMutationAuthorizationTests` (A-04, A-08a) |
+| Delete | Добрий | deny, 401 | власний — deny, 403; чужий — deny, 404 | deny, 403 | власний — deny, 403; чужий — deny, 404 | Так для видимості | Handler `Delete` завжди відмовляє; перевірено Alice → Bob 404 та Analyst → Bob 403, БД незмінна (A-04) |
+| Triage New → Triaged | Добрий | deny, 401 | власний — deny, 403; чужий — deny, 404 | allow лише для New; інший статус — 409 | власний — deny, 403; чужий — deny, 404 | Для дозволу Analyst — ні | Handler `Read` і `Triage`, потім status check в endpoint; A-06, A-07, A-09 |
+| Public comment за прямим id | Добрий | deny, 401 | власний parent — allow; чужий — deny, 404 | allow після parent authorization | власний parent — allow; чужий — deny, 404 | Так, крім Analyst | `GetCommentAsync`, `Read` для parent; A-12 |
+| Internal comment | Добрий | deny, 401 | deny, 404 | allow після parent authorization | deny, 404 | Одного ownership недостатньо | `ViewInternalComment` після `Read`; однаково для details і child; A-12 |
 
-## Межі звичайного оновлення
+Це правила реалізації; не кожна можлива комбінація ролі й операції має окремий тест. Фактично виконане HTTP-покриття наведено у звіті.
 
-UpdateIncidentRequest містить лише title і description.
+## 4. Межі DTO
 
-OwnerUserId, role, severity, status, id та службові часові поля
-не входять до DTO звичайного оновлення.
+`UpdateIncidentRequest` містить лише Title і Description. Обрано A-08a: невідомі поля JSON ігноруються. Дозволений owner update повертає 204 і змінює content та серверний UpdatedAtUtc. Тест перевіряє незмінність owner, severity, status, часу створення/події, призначень ролей і кількості дочірніх записів.
 
-Обрано контракт A-08a: невідомі поля JSON ігноруються.
-Успішне оновлення повертає 204; змінюється дозволений content
-і серверний UpdatedAtUtc. Owner, role, severity та status незмінні.
+`ChangeIncidentStatusRequest` містить лише Note. Поточний статус читається з БД; next status, actor і службовий час визначає сервер. Forged role/status/isTransitionAllowed не дають Reporter дозволу.
 
-## Обґрунтування прав
+## 5. Обґрунтування
 
-Analyst має право читання для аналізу та окремий дозвіл
-на New → Triaged. Це не надає права редагувати content або видаляти.
+Reporter редагує текст власного інциденту. Analyst має read для аналізу та лише New → Triaged; це не право content update/delete. Administrator не отримує автоматичного обходу ownership або прав Analyst.
 
-Administrator не має автоматичного доступу до чужих інцидентів
-і не отримує права Analyst через назву адміністративної ролі.
+Окремого явного дозволу на delete у використаному baseline не визначено, тому обрано deny всім ролям. У цьому API немає дозволеного сценарію фізичного видалення; маршрут перевіряє видимість і повертає відповідну відмову.
 
-У baseline немає явного дозволу на видалення. Для цієї операції
-обрано deny для всіх ролей; endpoint має перевіряти видимість
-ресурсу та повертати відмову без зміни стану.
+Reporter не бачить internal comment навіть у власному інциденті. Analyst спочатку проходить перевірку parent incident, потім internal visibility.
 
-Internal comment приховується від Reporter навіть тоді,
-коли Reporter є власником батьківського інциденту.
-Правило однакове для details та прямого child endpoint.
+## 6. Аудит
 
-## Аудит
-
-Відмовлена спроба triage створює structured event authorization.denied:
-subject id, action, resource id, result, серверний час UTC і traceId.
-
-TraceId збігається з відповіддю клієнтові.
-Пароль, cookie, token і повний request body не журналюються.
+Перевірена відмова Reporter на triage власного ресурсу створює structured event `authorization.denied`: subject, action, resource, result, server UTC time, traceId. Використано `Activity.Current?.Id ?? httpContext.TraceIdentifier`; збіг із Problem Details підтверджено вручну. Password, cookie, token і raw body не журналюються. Ранні 404 не описуються як окремо перевірені аудиторські події.

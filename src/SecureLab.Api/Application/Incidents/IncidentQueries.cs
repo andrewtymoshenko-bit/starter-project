@@ -5,18 +5,33 @@ using SecureLab.Api.Presentation.Contracts;
 
 namespace SecureLab.Api.Application.Incidents;
 
-public sealed class IncidentQueries(SecureLabDbContext dbContext, ILogger<IncidentQueries> logger)
+public sealed class IncidentQueries(
+    SecureLabDbContext dbContext,
+    ILogger<IncidentQueries> logger)
 {
     public async Task<IReadOnlyList<IncidentListItemResponse>> GetListAsync(
         IncidentStatus? status,
+        Guid userId,
+        bool isAnalyst,
         CancellationToken cancellationToken)
     {
-        logger.LogInformation("Loading incidents with status filter {Status}", status);
+        logger.LogInformation(
+            "Loading incidents with status filter {Status} for analyst {IsAnalyst}",
+            status,
+            isAnalyst);
 
         var query = dbContext.Incidents.AsNoTracking();
+
+        if (!isAnalyst)
+        {
+            query = query.Where(
+                incident => incident.OwnerUserId == userId);
+        }
+
         if (status is not null)
         {
-            query = query.Where(incident => incident.Status == status);
+            query = query.Where(
+                incident => incident.Status == status);
         }
 
         return await query
@@ -31,7 +46,10 @@ public sealed class IncidentQueries(SecureLabDbContext dbContext, ILogger<Incide
             .ToListAsync(cancellationToken);
     }
 
-    public Task<IncidentDetailsResponse?> GetDetailsAsync(Guid id, CancellationToken cancellationToken)
+    public Task<IncidentDetailsResponse?> GetDetailsAsync(
+        Guid id,
+        bool includeInternalComments,
+        CancellationToken cancellationToken)
     {
         logger.LogInformation("Loading incident {IncidentId}", id);
 
@@ -48,7 +66,8 @@ public sealed class IncidentQueries(SecureLabDbContext dbContext, ILogger<Incide
                 incident.CreatedAtUtc,
                 incident.Owner.DisplayName,
                 incident.Comments
-                    .Where(comment => !comment.IsInternal)
+                    .Where(comment =>
+                        includeInternalComments || !comment.IsInternal)
                     .OrderBy(comment => comment.CreatedAtUtc)
                     .Select(comment => new IncidentCommentResponse(
                         comment.Id,
@@ -58,26 +77,32 @@ public sealed class IncidentQueries(SecureLabDbContext dbContext, ILogger<Incide
                     .ToList()))
             .SingleOrDefaultAsync(cancellationToken);
     }
-        public async Task<IReadOnlyList<IncidentSeveritySummaryResponse>> GetSeveritySummaryAsync(
+
+    public async Task<IReadOnlyList<IncidentSeveritySummaryResponse>>
+        GetSeveritySummaryAsync(
             IncidentStatus? status,
             CancellationToken cancellationToken)
+    {
+        var query = dbContext.Incidents.AsNoTracking();
+
+        if (status is not null)
         {
-            var query = dbContext.Incidents.AsNoTracking();
-            if (status is not null)
-            {
-                query = query.Where(incident => incident.Status == status);
-            }
-
-            var result = await query
-                .GroupBy(incident => incident.Severity)
-                .OrderBy(group => group.Key)
-                .Select(group => new IncidentSeveritySummaryResponse(
-                    group.Key.ToString(),
-                    group.Count()))
-                .ToListAsync(cancellationToken);
-
-            logger.LogInformation("Severity summary produced {GroupCount} groups", result.Count);
-
-            return result;
+            query = query.Where(
+                incident => incident.Status == status);
         }
+
+        var result = await query
+            .GroupBy(incident => incident.Severity)
+            .OrderBy(group => group.Key)
+            .Select(group => new IncidentSeveritySummaryResponse(
+                group.Key.ToString(),
+                group.Count()))
+            .ToListAsync(cancellationToken);
+
+        logger.LogInformation(
+            "Severity summary produced {GroupCount} groups",
+            result.Count);
+
+        return result;
+    }
 }
