@@ -1,0 +1,37 @@
+{
+  "checkedAtUtc": "2026-10-19T13:20:13.320Z",
+  "subjectId": "10000000-0000-0000-0000-000000000001",
+  "responses": [
+    {
+      "scenario": "foreign",
+      "method": "GET",
+      "path": "/api/incidents/20000000-0000-0000-0000-000000000002",
+      "status": 404,
+      "contentType": "application/problem+json",
+      "body": {
+        "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+        "title": "Інцидент не знайдено",
+        "status": 404,
+        "traceId": "00-4e1eec5fe82dd38f1e0ac4872c915e32-862ddad9e1c54f0b-00"
+      }
+    },
+    {
+      "scenario": "unknown",
+      "method": "GET",
+      "path": "/api/incidents/c7d20958-8721-44ed-97ec-5d088281c3a0",
+      "status": 404,
+      "contentType": "application/problem+json",
+      "body": {
+        "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+        "title": "Інцидент не знайдено",
+        "status": 404,
+        "traceId": "00-79c7c2e014058380275b30bde2e93072-f5f4c4c31ad892a0-00"
+      }
+    }
+  ],
+  "checks": {
+    "both404": true,
+    "sameContentType": true,
+    "sameBodyExceptTraceId": true
+  }
+}
