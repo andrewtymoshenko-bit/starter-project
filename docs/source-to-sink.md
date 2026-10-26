@@ -1,30 +1,54 @@
-# Власна карта source-to-sink
+# ЛР №5. Карта source-to-sink
 
-Поле: Incident.Description: Користувач O'Brien написав \"терміново\".. Стан/commit: заповніть. Вхід/Guid запису: 0813f57b-1705-4859-89bc-0b36317e07e4.
+Рівень: **«Добре»**. Description і Comment.Text є звичайним текстом; formatted HTML не дозволено. Шляхи в таблицях – від `src/SecureLab.Api/`.
 
-| Крок | Конкретне місце | Що відбувається |
+## Incident.Description
+
+Marker-інцидент для retest: `62afdb9e-661d-4fb6-8947-5ff015fa7728`.
+
+| Крок | Місце в коді | Дані та перетворення |
 |---|---|---|
-| Source | `browser-lab.html`, форма `#edit`, `textarea name="description"` | Користувач вводить недовірений текст |
-| Request | `browser-lab.js`, обробник `submit` | Значення передається в JSON-полі `description` через POST |
-| Validation/mapping | `Scaffolding/Lab02Endpoints.cs`, POST handler, `CreateIncidentRequest.Description` | Виконується `Trim()`, перевіряються обов’язковість і максимальна довжина 4000; значення присвоюється `Incident.Description` |
-| Storage | `Incident.Description`, PostgreSQL | `SaveChangesAsync` зберігає текст; він залишається недовіреним для HTML |
-| Response | `IncidentQueries.cs`, `GetDetailsAsync`; DTO `IncidentDetailsResponse` | Опис повертається через GET у JSON-полі `description` |
-| Client transform | `browser-lab.js`, `load()` | `response.json()` створює об’єкт `current`; опис доступний як `current.description` |
-| Sink/context | `load()`, `#description.innerHTML` | Рядок передається HTML-парсеру, тому може створювати елементи DOM |
+| Source | `Client/browser-lab.html`, форма `#edit` | Користувацький текст у `textarea name="description"` |
+| Request | `Client/browser-lab.js`, обробник `submit` | Значення поля → JSON `description` → `POST /api/incidents` |
+| Validation / mapping | `Scaffolding/Lab02Endpoints.cs`, `CreateIncidentRequest.Description` | `Trim()`, required, максимальна довжина 4000; присвоєння `Incident.Description` |
+| Storage | `Data/Entities/Incident.cs`, `Data/SecureLabDbContext.cs` | `Incident.Description` → PostgreSQL `incidents.description` |
+| Response | `IncidentQueries.GetDetailsAsync`, `IncidentDetailsResponse.Description` | Після перевірки права читання GET повертає JSON `description` |
+| Client transform | `Client/browser-lab.js`, `load()` | `response.json()` → `current.description` |
+| Sink до fix | `load()`, `#description` | `innerHTML = current.description`: рядок розбирається як HTML |
+| Sink після fix | `load()` → `renderPlainText` | `textContent` утворює текстовий вузол |
 
-| Крок | Конкретне місце |
-|---|---|
-| Source | `DbSeeder.SeedAsync`, константа `Lab05Marker`; у продукті джерелом був би автор коментаря |
-| Request | Відсутній для створення: тестові дані додаються seed; GET лише читає запис |
-| Mapping | `new IncidentComment`, `Text = Lab05Marker` |
-| Storage | `IncidentComment.Text`, збереження через `SaveChangesAsync` |
-| Response | `IncidentQueries.GetDetailsAsync` → `IncidentCommentResponse` → `comments[].text` |
-| Client transform | `browser-lab.js`, цикл `for` у `load()` |
-| Sink/context | `paragraph.innerHTML = comment.text`, інтерпретація як HTML |
+## IncidentComment.Text
 
-| Поле | Безпечний шлях після fix |
-|---|---|
-| `Incident.Description` | `load()` → `renderPlainText(#description, current.description)` → `textContent` |
-| `IncidentComment.Text` | цикл у `load()` → `renderPlainText(paragraph, comment.text)` → `textContent` |
+Seed-інцидент: `20000000-0000-0000-0000-000000000001`. Public marker-коментар: `30000000-0000-0000-0000-000000000005`, автор Morgan, `IsInternal = false`.
 
-Інвентаризація: файл/функція → категорія даних → контекст → обґрунтоване рішення. Для «Добре / Відмінно» додайте повний другий потік IncidentComment.Text за тією самою таблицею. Для «Відмінно» додайте результат поглибленої перевірки comments/повторного render. Рівні накопичувальні; основний Description потрібний для всіх.
+| Крок | Місце в коді | Дані та перетворення |
+|---|---|---|
+| Source | `Data/DbSeeder.cs`, `SeedAsync` | Константа `Lab05Marker`; у продукті джерелом був би автор коментаря |
+| Request | Відсутній для створення fixture | Коментар додається seed; GET лише читає інцидент |
+| Mapping | `IncidentComments.AddRange`, `new IncidentComment` | `Text = Lab05Marker`, зв'язок із `aliceIncident` та `morgan` |
+| Storage | `IncidentComment.Text`, `SecureLabDbContext` | PostgreSQL `incident_comments.text`, збереження через `SaveChangesAsync` |
+| Response | `IncidentQueries.GetDetailsAsync`, `IncidentCommentResponse.Text` | JSON `comments[].text`; internal-коментарі фільтруються за правами |
+| Client transform | `Client/browser-lab.js`, цикл у `load()` | Для кожного коментаря створюється `<p>` через `createElement` |
+| Sink до fix | Той самий цикл | `paragraph.innerHTML = comment.text` |
+| Sink після fix | Той самий цикл → `renderPlainText` | `paragraph.textContent`, додавання вузла до `#comments` |
+
+## Спільне виправлення та інвентаризація
+
+Обидва поля використовують helper у `Client/browser-lab.js`:
+
+```javascript
+function renderPlainText(element, text) {
+  element.textContent = text ?? "";
+}
+```
+
+| Місце | Походження / контекст | Рішення |
+|---|---|---|
+| Description і Comment.Text | Збережений недовірений текст у HTML sink | Обидва `innerHTML` замінено helper |
+| Title та HTTP status у browser-lab | API title / сформований status | Уже використовують `textContent` |
+| Поля форми | Користувацький текст / API data | `.value`, без HTML-парсера |
+| Штатний `app.js`, `createTextElement` | API data у текстових вузлах | `createElement` і `textContent` |
+
+Пошук небезпечних patterns у власних JS/HTML клієнта після fix не повернув збігів. Це результат інвентаризації, а не гарантія відсутності всіх можливих вразливостей.
+
+**Висновок:** БД, validation та HTTP 200 не роблять текст довіреним HTML. Потоки мають ознаку stored XSS і клієнтський DOM sink. Після fix marker незмінний у JSON, але відображається текстом; CSP є додатковим захистом. Результати – у browser-security-evidence.md.
