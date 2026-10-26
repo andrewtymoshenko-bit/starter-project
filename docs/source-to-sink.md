@@ -22,5 +22,9 @@
 | Client transform | `browser-lab.js`, цикл `for` у `load()` |
 | Sink/context | `paragraph.innerHTML = comment.text`, інтерпретація як HTML |
 
+| Поле | Безпечний шлях після fix |
+|---|---|
+| `Incident.Description` | `load()` → `renderPlainText(#description, current.description)` → `textContent` |
+| `IncidentComment.Text` | цикл у `load()` → `renderPlainText(paragraph, comment.text)` → `textContent` |
 
 Інвентаризація: файл/функція → категорія даних → контекст → обґрунтоване рішення. Для «Добре / Відмінно» додайте повний другий потік IncidentComment.Text за тією самою таблицею. Для «Відмінно» додайте результат поглибленої перевірки comments/повторного render. Рівні накопичувальні; основний Description потрібний для всіх.
