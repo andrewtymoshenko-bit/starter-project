@@ -1,3 +1,7 @@
+function renderPlainText(element, text) {
+  element.textContent = text ?? "";
+}
+
 let current;
 const id = () => encodeURIComponent(document.querySelector("#incident-id").value.trim());
 const status = document.querySelector("#status");
@@ -7,11 +11,11 @@ async function load() {
   if (!response.ok) return;
   current = await response.json();
   document.querySelector("#title").textContent = current.title;
-  document.querySelector("#description").innerHTML = current.description;
+  renderPlainText(document.querySelector("#description"), current.description);
   document.querySelector("#comments").replaceChildren();
   for (const comment of current.comments ?? []) {
     const paragraph = document.createElement("p");
-    paragraph.innerHTML = comment.text;
+    renderPlainText(paragraph, comment.text);
     document.querySelector("#comments").append(paragraph);
   }
   document.querySelector("#edit").elements.description.value = current.description;
