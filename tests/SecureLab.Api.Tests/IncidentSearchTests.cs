@@ -20,6 +20,7 @@ public sealed class IncidentSearchTests(SecureLabApiFactory factory)
                 "Задайте SeedUsers__Password перед запуском тестів.");
 
         _client = await factory.LoginAsync("alice", password);
+        await _client.UseAntiforgeryTokenAsync();
     }
 
     public Task DisposeAsync()

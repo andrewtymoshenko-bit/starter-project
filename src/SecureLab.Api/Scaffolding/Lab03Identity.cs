@@ -3,6 +3,7 @@ using SecureLab.Api.Data;
 using SecureLab.Api.Data.Entities;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using SecureLab.Api.Security;
 
 namespace SecureLab.Api.Scaffolding;
 
@@ -176,7 +177,7 @@ public static class Lab03Identity
                 context.TraceIdentifier);
 
             return Results.NoContent();
-        }).RequireAuthorization();
+        }).RequireAuthorization().AddEndpointFilter<AntiforgeryFilter>();
 
         app.MapGet("/api/me", async (
             HttpContext context,

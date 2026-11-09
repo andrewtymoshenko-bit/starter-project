@@ -6,6 +6,7 @@ using SecureLab.Api.Application.Incidents;
 using SecureLab.Api.Data;
 using SecureLab.Api.Data.Entities;
 using SecureLab.Api.Presentation.Contracts;
+using SecureLab.Api.Security;
 
 namespace SecureLab.Api.Presentation.Endpoints;
 
@@ -31,6 +32,7 @@ public static class IncidentEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapPut("/{id:guid}", UpdateAsync)
+            .AddEndpointFilter<AntiforgeryFilter>()
             .WithName("UpdateIncident")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesValidationProblem()
@@ -39,12 +41,14 @@ public static class IncidentEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapDelete("/{id:guid}", DeleteAsync)
+            .AddEndpointFilter<AntiforgeryFilter>()
             .WithName("DeleteIncident")
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapPost("/{id:guid}/triage", TriageAsync)
+            .AddEndpointFilter<AntiforgeryFilter>()
             .WithName("TriageIncident")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesValidationProblem()
@@ -355,6 +359,17 @@ public static class IncidentEndpoints
         incident.UpdatedAtUtc = now;
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "audit.event subject={SubjectId} action={Action} "
+            + "resource={ResourceId} result={Result} "
+            + "occurredAtUtc={OccurredAtUtc:O} traceId={TraceId}",
+            userId,
+            "incident.triage",
+            incident.Id,
+            "success",
+            now,
+            Activity.Current?.Id ?? httpContext.TraceIdentifier);
 
         return Results.NoContent();
     }

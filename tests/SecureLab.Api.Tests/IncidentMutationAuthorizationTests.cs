@@ -12,19 +12,23 @@ public sealed class IncidentMutationAuthorizationTests(
     SecureLabApiFactory factory)
     : IClassFixture<SecureLabApiFactory>
 {
-    private Task<HttpClient> LoginAsync(string userName)
+    private async Task<HttpClient> LoginAsync(string userName)
+{
+    var password =
+        Environment.GetEnvironmentVariable("SeedUsers__Password");
+
+    if (string.IsNullOrWhiteSpace(password))
     {
-        var password =
-            Environment.GetEnvironmentVariable("SeedUsers__Password");
-
-        if (string.IsNullOrWhiteSpace(password))
-        {
-            throw new InvalidOperationException(
-                "Задайте SeedUsers__Password перед запуском тестів.");
-        }
-
-        return factory.LoginAsync(userName, password);
+        throw new InvalidOperationException(
+            "Задайте SeedUsers__Password перед запуском тестів.");
     }
+
+    var client = await factory.LoginAsync(userName, password);
+
+    await client.UseAntiforgeryTokenAsync();
+
+    return client;
+}
 
     // A-04: Alice не змінює і не видаляє інцидент Bob.
     [Theory]

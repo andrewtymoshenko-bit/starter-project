@@ -68,6 +68,10 @@ document.querySelector("#login")
 
       result.textContent = `Login: ${response.status}`;
 
+      if (response.ok) {
+        secureLabCsrf.reset();
+      }
+
       await refreshSession();
     } catch {
       result.textContent = "Не вдалося виконати вхід.";
@@ -89,7 +93,7 @@ document.querySelector("#me")
 document.querySelector("#logout")
   .addEventListener("click", async () => {
     try {
-      const response = await fetch("/api/auth/logout", {
+      const response = await secureLabCsrf.fetch("/api/auth/logout", {
         method: "POST",
         credentials: "same-origin"
       });
@@ -97,6 +101,7 @@ document.querySelector("#logout")
       result.textContent = `Logout: ${response.status}`;
 
       if (response.status === 204) {
+        secureLabCsrf.reset();
         showSession("anonymous");
         document.querySelector("#create-result").textContent = "";
         document.querySelector("#create-incident").reset();
@@ -126,7 +131,7 @@ document.querySelector("#create-incident")
     };
 
     try {
-      const response = await fetch("/api/incidents", {
+      const response = await secureLabCsrf.fetch("/api/incidents", {
         method: "POST",
         credentials: "same-origin",
         headers: {
@@ -148,7 +153,7 @@ document.querySelector("#create-incident")
         "Не вдалося отримати відповідь сервера.";
     }
   });
-  refreshSession();
+refreshSession();
 
 const registerResult = document.querySelector("#register-result");
 

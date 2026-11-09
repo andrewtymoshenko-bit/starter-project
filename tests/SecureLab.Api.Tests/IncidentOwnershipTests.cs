@@ -22,6 +22,7 @@ public sealed class IncidentOwnershipTests(SecureLabApiFactory factory)
                 "Задайте SeedUsers__Password перед запуском тестів.");
 
         using var client = await factory.LoginAsync("bob", password);
+        await client.UseAntiforgeryTokenAsync();
 
         var title = "LR03-owner-" + Guid.NewGuid().ToString("N");
 

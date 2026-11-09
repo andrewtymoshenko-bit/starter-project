@@ -34,6 +34,8 @@ public sealed class AuthenticationTests(SecureLabApiFactory factory)
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.Null(response.Headers.Location);
+        Assert.Equal(HttpStatusCode.Unauthorized, createResponse.StatusCode);
+        Assert.Null(createResponse.Headers.Location);
     }
 
     [Fact]
@@ -111,6 +113,7 @@ public sealed class AuthenticationTests(SecureLabApiFactory factory)
         using var client = await factory.LoginAsync(
             "bob",
             GetSeedPassword());
+        await client.UseAntiforgeryTokenAsync();
 
         // До виходу захищений endpoint доступний.
         using var before = await client.GetAsync("/api/me");
@@ -237,6 +240,6 @@ public sealed class AuthenticationTests(SecureLabApiFactory factory)
                     : null;
         }
 
-    return fields;
-}
+        return fields;
+    }
 }
